@@ -7,6 +7,7 @@ import org.springframework.messaging.SubscribableChannel;
 
 public interface ChatServicesStreams {
 
+    // TODO - Don't know what's this new comments used for?
     //String NEW_COMMENTS = "newComments";
     String CLIENT_TO_BROKER = "clientToBroker";
     String BROKER_TO_CLIENT = "brokerToClient";

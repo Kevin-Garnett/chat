@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 
 @Service
 @EnableBinding(ChatServicesStreams.class)
-public class InboundChatService implements WebSocketHandler {
+public class InboundChatService extends UserParsingHandshakeHandler {//implements WebSocketHandler {
 
     private final ChatServicesStreams chatServicesStreams;
 
@@ -18,24 +18,32 @@ public class InboundChatService implements WebSocketHandler {
         this.chatServicesStreams = chatServicesStreams;
     }
 
+    //@Override
+    //public Mono<Void> handle(WebSocketSession webSocketSession) {
+
     @Override
-    public Mono<Void> handle(WebSocketSession webSocketSession) {
-        return webSocketSession
+    protected Mono<Void> handleInternal(WebSocketSession session) {
+        return session
                 .receive()
-                .log("inbound-incoming-chat-message")
+                .log(getUser(session.getId()) + "-inbound-incoming-chat-message")
                 .map(WebSocketMessage::getPayloadAsText)
-                .log("inbound-convert-to-text")
-                .map(s -> webSocketSession.getId() + ": " + s)
-                .log("inbound-mark-with-session-id")
-                .flatMap(this::broadcast)
-                .log("inbound-broadcast-to-broker")
+                .log(getUser(session.getId()) + "-inbound-convert-to-text")
+                //.map(s -> session.getId() + ": " + s)
+                //.log("inbound-mark-with-session-id")
+                //.flatMap(this::broadcast)
+                .flatMap(message -> broadcast(message, getUser(session.getId())))
+                .log(getUser(session.getId()) + "-inbound-broadcast-to-broker")
                 .then();
     }
 
-    public Mono<?> broadcast(String message){
+    //public Mono<?> broadcast(String message){
+    public Mono<?> broadcast(String message, String user){
         return Mono.fromRunnable(() -> {
            chatServicesStreams.clientToBroker().send(
-                   MessageBuilder.withPayload(message).build());
+                   MessageBuilder
+                           .withPayload(message)
+                           .setHeader(ChatServicesStreams.USER_HEADER, user)
+                           .build());
         });
     }
 }
